@@ -10,8 +10,6 @@ export const getPosts = (req, res) => {
   jwt.verify(token, "secretkey", (err, userInfo) => {
     if (err) return res.status(403).json("Token is not valid!");
 
-    console.log(userId);
-
     const q =
       userId !== "undefined"
         ? `SELECT p.*, u.id AS userId, name, profilePic FROM posts AS p JOIN users AS u ON (u.id = p.userId) WHERE p.userId = ? ORDER BY p.createdAt DESC`
@@ -63,7 +61,7 @@ export const deletePost = (req, res) => {
 
     db.query(q, [req.params.id, userInfo.id], (err, data) => {
       if (err) return res.status(500).json(err);
-      if(data.affectedRows>0) return res.status(200).json("Post has been deleted.");
+      if (data.affectedRows > 0) return res.status(200).json("Post has been deleted.");
       return res.status(403).json("You can delete only your post")
     });
   });
