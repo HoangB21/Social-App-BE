@@ -4,7 +4,13 @@ import moment from "moment";
 
 export const getPosts = (req, res) => {
   const userId = req.query.userId;
-  const token = req.cookies.accessToken;
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json("No token provided!");
+  }
+
+  const token = authHeader.split(" ")[1];
   if (!token) return res.status(401).json("Not logged in!");
 
   jwt.verify(token, "secretkey", (err, userInfo) => {
@@ -28,7 +34,13 @@ export const getPosts = (req, res) => {
 };
 
 export const addPost = (req, res) => {
-  const token = req.cookies.accessToken;
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json("No token provided!");
+  }
+
+  const token = authHeader.split(" ")[1];
   if (!token) return res.status(401).json("Not logged in!");
 
   jwt.verify(token, "secretkey", (err, userInfo) => {
@@ -50,7 +62,13 @@ export const addPost = (req, res) => {
   });
 };
 export const deletePost = (req, res) => {
-  const token = req.cookies.accessToken;
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json("No token provided!");
+  }
+
+  const token = authHeader.split(" ")[1];
   if (!token) return res.status(401).json("Not logged in!");
 
   jwt.verify(token, "secretkey", (err, userInfo) => {

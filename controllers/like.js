@@ -1,17 +1,23 @@
 import { db } from "../connect.js";
 import jwt from "jsonwebtoken";
 
-export const getLikes = (req,res)=>{
-    const q = "SELECT userId FROM likes WHERE postId = ?";
+export const getLikes = (req, res) => {
+  const q = "SELECT userId FROM likes WHERE postId = ?";
 
-    db.query(q, [req.query.postId], (err, data) => {
-      if (err) return res.status(500).json(err);
-      return res.status(200).json(data.map(like=>like.userId));
-    });
+  db.query(q, [req.query.postId], (err, data) => {
+    if (err) return res.status(500).json(err);
+    return res.status(200).json(data.map(like => like.userId));
+  });
 }
 
 export const addLike = (req, res) => {
-  const token = req.cookies.accessToken;
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json("No token provided!");
+  }
+
+  const token = authHeader.split(" ")[1];
   if (!token) return res.status(401).json("Not logged in!");
 
   jwt.verify(token, "secretkey", (err, userInfo) => {
@@ -32,7 +38,13 @@ export const addLike = (req, res) => {
 
 export const deleteLike = (req, res) => {
 
-  const token = req.cookies.accessToken;
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json("No token provided!");
+  }
+
+  const token = authHeader.split(" ")[1];
   if (!token) return res.status(401).json("Not logged in!");
 
   jwt.verify(token, "secretkey", (err, userInfo) => {

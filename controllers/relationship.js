@@ -1,17 +1,23 @@
 import { db } from "../connect.js";
 import jwt from "jsonwebtoken";
 
-export const getRelationships = (req,res)=>{
-    const q = "SELECT followerUserId FROM relationships WHERE followedUserId = ?";
+export const getRelationships = (req, res) => {
+  const q = "SELECT followerUserId FROM relationships WHERE followedUserId = ?";
 
-    db.query(q, [req.query.followedUserId], (err, data) => {
-      if (err) return res.status(500).json(err);
-      return res.status(200).json(data.map(relationship=>relationship.followerUserId));
-    });
+  db.query(q, [req.query.followedUserId], (err, data) => {
+    if (err) return res.status(500).json(err);
+    return res.status(200).json(data.map(relationship => relationship.followerUserId));
+  });
 }
 
 export const addRelationship = (req, res) => {
-  const token = req.cookies.accessToken;
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json("No token provided!");
+  }
+
+  const token = authHeader.split(" ")[1];
   if (!token) return res.status(401).json("Not logged in!");
 
   jwt.verify(token, "secretkey", (err, userInfo) => {
@@ -32,7 +38,13 @@ export const addRelationship = (req, res) => {
 
 export const deleteRelationship = (req, res) => {
 
-  const token = req.cookies.accessToken;
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json("No token provided!");
+  }
+
+  const token = authHeader.split(" ")[1];
   if (!token) return res.status(401).json("Not logged in!");
 
   jwt.verify(token, "secretkey", (err, userInfo) => {
