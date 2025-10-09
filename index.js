@@ -66,7 +66,7 @@ app.use("/api/stories", storyRoutes);
 app.use("/api/relationships", relationshipRoutes);
 
 // Simple route to check if the server is running
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.status(200).send('OK');
 });
 
