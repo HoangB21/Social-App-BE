@@ -1,0 +1,70 @@
+name: Deploy Backend via SSM
+
+on:
+  workflow_dispatch:
+  
+  push:
+    branches:
+      - main 
+
+jobs:
+  deploy:
+    name: Deploy backend to EC2 via SSM
+    runs-on: be-runner
+
+    steps:
+      # - name: Checkout repository
+      #   uses: actions/checkout@v4
+
+      # - name: Setup Node.js
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: '22'
+
+      # - name: Install dependencies (optional)
+      #   run: npm ci
+
+      # - name: Run tests (optional)
+      #   run: npm test
+
+      # Deploy step: Gửi lệnh đến EC2 qua SSM
+      - name: Deploy via AWS SSM
+        env:
+          AWS_REGION: ap-southeast-2
+        run: |
+          echo "🚀 Deploying backend via SSM..."
+
+          # Xác định các instance có tag Role=backend-ec2
+          INSTANCE_IDS=$(aws ec2 describe-instances \
+            --filters "Name=tag:Role,Values=backend-ec2" "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[].InstanceId" \
+            --output text --region $AWS_REGION)
+
+          echo "📦 Target instances: $INSTANCE_IDS"
+
+          if [ -z "$INSTANCE_IDS" ]; then
+            echo "❌ No running instances found with tag Role=backend"
+            exit 1
+          fi
+
+          # Gửi lệnh cập nhật code và restart pm2
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:Role,Values=backend-ec2" \
+            --comment "CI/CD Deploy backend" \
+            --parameters 'commands=[
+              "sudo su - ubuntu -c \"cd /home/ubuntu/Social-App-BE && git pull && pm2 restart all\""
+            ]' \
+            --max-concurrency "50%" \
+            --region $AWS_REGION \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "✅ Sent command with ID: $COMMAND_ID"
+
+          # Theo dõi trạng thái thực thi
+          echo "⏳ Waiting for command to finish..."
+          aws ssm list-command-invocations \
+            --command-id "$COMMAND_ID" \
+            --details \
+            --region $AWS_REGION
