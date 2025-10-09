@@ -72,7 +72,7 @@ app.get('/api/health', (req, res) => {
 
 // Modify this to test CI/CD pipeline
 app.get('/api/about', (req, res) => {
-  res.status(200).json({ message: 'This is a social media API server.' });
+  res.status(200).json({ message: 'This is a social media API server. Created by Hoang' });
 });
 
 app.listen(8800, () => {
