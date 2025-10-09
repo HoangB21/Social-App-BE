@@ -70,6 +70,11 @@ app.get('/api/health', (req, res) => {
   res.status(200).send('OK');
 });
 
+// Modify this to test CI/CD pipeline
+app.get('/api/about', (req, res) => {
+  res.status(200).json({ message: 'This is a social media API server.' });
+});
+
 app.listen(8800, () => {
   console.log("API working!");
 });
