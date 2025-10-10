@@ -81,31 +81,29 @@ const METADATA_BASE = "http://169.254.169.254/latest";
 export async function getEc2PublicIp() {
   try {
     // 1️⃣ Tạo session token (IMDSv2)
-    const tokenResponse = await axios.put(
-      `${METADATA_BASE}/api/token`,
-      null,
-      {
-        headers: {
-          "X-aws-ec2-metadata-token-ttl-seconds": "21600", // 6 tiếng
-        },
-        timeout: 1000, // tránh treo nếu không phải EC2
-      }
-    );
+    const tokenRes = await fetch(`${METADATA_BASE}/api/token`, {
+      method: "PUT",
+      headers: {
+        "X-aws-ec2-metadata-token-ttl-seconds": "21600", // 6 tiếng
+      },
+      timeout: 1000, // chỉ hỗ trợ qua AbortController, xử lý bên dưới
+    });
 
-    const token = tokenResponse.data;
+    if (!tokenRes.ok) throw new Error(`Token request failed (${tokenRes.status})`);
+
+    const token = await tokenRes.text();
 
     // 2️⃣ Gọi metadata API với token để lấy Public IPv4
-    const ipResponse = await axios.get(
-      `${METADATA_BASE}/meta-data/public-ipv4`,
-      {
-        headers: {
-          "X-aws-ec2-metadata-token": token,
-        },
-        timeout: 1000,
-      }
-    );
+    const ipRes = await fetch(`${METADATA_BASE}/meta-data/public-ipv4`, {
+      headers: {
+        "X-aws-ec2-metadata-token": token,
+      },
+    });
 
-    return ipResponse.data;
+    if (!ipRes.ok) throw new Error(`Metadata request failed (${ipRes.status})`);
+
+    const ip = await ipRes.text();
+    return ip;
   } catch (err) {
     console.error("Không thể lấy public IPv4:", err.message);
     return null;
