@@ -113,7 +113,7 @@ export async function getEc2PublicIp() {
 app.get('/api/info', async (req, res) => {
   const ip = await getEc2PublicIp();
   if (ip) {
-    res.status(200).json({ publicIp: ip });
+    res.status(200).json({ publicIp: ip, message: 'API server is running - Demo date: 10/10/2025' });
   } else {
     res.status(500).json({ error: 'Không thể lấy địa chỉ IP công cộng' });
   }
