@@ -75,6 +75,52 @@ app.get('/api/about', (req, res) => {
   res.status(200).json({ message: 'This is a social media API server. Created by Hoang' });
 });
 
+// Get IP address of the server
+const METADATA_BASE = "http://169.254.169.254/latest";
+
+export async function getEc2PublicIp() {
+  try {
+    // 1️⃣ Tạo session token (IMDSv2)
+    const tokenResponse = await axios.put(
+      `${METADATA_BASE}/api/token`,
+      null,
+      {
+        headers: {
+          "X-aws-ec2-metadata-token-ttl-seconds": "21600", // 6 tiếng
+        },
+        timeout: 1000, // tránh treo nếu không phải EC2
+      }
+    );
+
+    const token = tokenResponse.data;
+
+    // 2️⃣ Gọi metadata API với token để lấy Public IPv4
+    const ipResponse = await axios.get(
+      `${METADATA_BASE}/meta-data/public-ipv4`,
+      {
+        headers: {
+          "X-aws-ec2-metadata-token": token,
+        },
+        timeout: 1000,
+      }
+    );
+
+    return ipResponse.data;
+  } catch (err) {
+    console.error("Không thể lấy public IPv4:", err.message);
+    return null;
+  }
+}
+
+app.get('/api/info', async (req, res) => {
+  const ip = await getEc2PublicIp();
+  if (ip) {
+    res.status(200).json({ publicIp: ip });
+  } else {
+    res.status(500).json({ error: 'Không thể lấy địa chỉ IP công cộng' });
+  }
+});
+
 app.listen(8800, () => {
   console.log("API working!");
 });
