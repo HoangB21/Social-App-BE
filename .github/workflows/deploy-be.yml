@@ -53,6 +53,7 @@ jobs:
             --targets "Key=tag:Role,Values=backend-ec2" \
             --comment "CI/CD Deploy backend" \
             --parameters 'commands=[
+              "sudo chown -R ubuntu:ubuntu /home/ubuntu/",
               "sudo su - ubuntu -c \"cd /home/ubuntu/Social-App-BE && git pull && pm2 restart all\""
             ]' \
             --max-concurrency "50%" \
