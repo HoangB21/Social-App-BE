@@ -75,6 +75,7 @@ app.get('/api/about', (req, res) => {
   res.status(200).json({ message: 'This is a social media API server. Created by Hoang' });
 });
 
+// Get IP address of the server
 const METADATA_BASE = "http://169.254.169.254/latest";
 
 export async function getEc2PublicIp() {
