@@ -78,7 +78,7 @@ app.get('/api/about', (req, res) => {
 // Get IP address of the server
 const METADATA_BASE = "http://169.254.169.254/latest";
 
-export async function getEc2PublicIp() {
+export async function getEc2PrivateIp() {
   try {
     // 1️⃣ Tạo session token (IMDSv2)
     const tokenRes = await fetch(`${METADATA_BASE}/api/token`, {
@@ -93,8 +93,8 @@ export async function getEc2PublicIp() {
 
     const token = await tokenRes.text();
 
-    // 2️⃣ Gọi metadata API với token để lấy Public IPv4
-    const ipRes = await fetch(`${METADATA_BASE}/meta-data/public-ipv4`, {
+    // 2️⃣ Gọi metadata API với token để lấy Private IPv4
+    const ipRes = await fetch(`${METADATA_BASE}/meta-data/private-ipv4`, {
       headers: {
         "X-aws-ec2-metadata-token": token,
       },
@@ -105,17 +105,17 @@ export async function getEc2PublicIp() {
     const ip = await ipRes.text();
     return ip;
   } catch (err) {
-    console.error("Không thể lấy public IPv4:", err.message);
+    console.error("Không thể lấy private IPv4:", err.message);
     return null;
   }
 }
 
 app.get('/api/info', async (req, res) => {
-  const ip = await getEc2PublicIp();
+  const ip = await getEc2PrivateIp();
   if (ip) {
-    res.status(200).json({ publicIp: ip, message: 'API server is running - Demo date: 10/10/2025' });
+    res.status(200).json({ privateIp: ip, message: `Hello from backend EC2 - private IP ${ip}` });
   } else {
-    res.status(500).json({ error: 'Không thể lấy địa chỉ IP công cộng' });
+    res.status(500).json({ error: "Can't get private IPv4" });
   }
 });
 
