@@ -27,7 +27,9 @@ jobs:
           fetch-depth: 0   # Quan trọng để có đủ tag và lịch sử commit
 
       - name: Fetch all tags
-        run: git fetch --tags
+        run: |
+          git tag -l | xargs git tag -d # Delete local tags
+          git fetch --tags
 
       # Determine version (auto từ tag hoặc rollback thủ công)
       - name: Determine version to deploy
