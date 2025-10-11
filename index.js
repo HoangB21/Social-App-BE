@@ -80,21 +80,21 @@ const METADATA_BASE = "http://169.254.169.254/latest";
 
 export async function getEc2PrivateIp() {
   try {
-    // 1️⃣ Tạo session token (IMDSv2)
+    // 1️⃣ Create a session token
     const tokenRes = await fetch(`${METADATA_BASE}/api/token`, {
       method: "PUT",
       headers: {
-        "X-aws-ec2-metadata-token-ttl-seconds": "21600", // 6 tiếng
+        "X-aws-ec2-metadata-token-ttl-seconds": "21600", // 6 hours
       },
-      timeout: 1000, // chỉ hỗ trợ qua AbortController, xử lý bên dưới
+      timeout: 1000,
     });
 
     if (!tokenRes.ok) throw new Error(`Token request failed (${tokenRes.status})`);
 
     const token = await tokenRes.text();
 
-    // 2️⃣ Gọi metadata API với token để lấy Private IPv4
-    const ipRes = await fetch(`${METADATA_BASE}/meta-data/private-ipv4`, {
+    // 2️⃣ Call metadata API with token to get Private IPv4
+    const ipRes = await fetch(`${METADATA_BASE}/meta-data/local-ipv4`, {
       headers: {
         "X-aws-ec2-metadata-token": token,
       },
@@ -105,7 +105,7 @@ export async function getEc2PrivateIp() {
     const ip = await ipRes.text();
     return ip;
   } catch (err) {
-    console.error("Không thể lấy private IPv4:", err.message);
+    console.error("Can't get private IPv4:", err.message);
     return null;
   }
 }
@@ -113,7 +113,7 @@ export async function getEc2PrivateIp() {
 app.get('/api/info', async (req, res) => {
   const ip = await getEc2PrivateIp();
   if (ip) {
-    res.status(200).json({ privateIp: ip, message: `Hello from backend EC2 - private IP ${ip}` });
+    res.status(200).json({ privateIp: ip, message: `Hello from backend EC2 - Private IPv4: ${ip}` });
   } else {
     res.status(500).json({ error: "Can't get private IPv4" });
   }
