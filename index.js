@@ -72,7 +72,7 @@ app.get('/api/health', (req, res) => {
 
 // Modify this to test CI/CD pipeline
 app.get('/api/about', (req, res) => {
-  res.status(200).json({ message: 'This is a social media API server. Created by Hoang. Version: 1.0.1' });
+  res.status(200).json({ message: 'This is a social media API server. Created by Hoang. Version: 1.2.0' });
 });
 
 // Get IP address of the server
