@@ -1,60 +1,98 @@
 name: Deploy Backend via SSM
 
 on:
-  workflow_dispatch:
-  
   push:
-    branches:
-      - main 
+    tags:
+      - "v*"           # Kích hoạt khi có tag mới được push (ví dụ v1.0.0)
+  workflow_dispatch:
+    inputs:
+      rollback_tag:
+        description: "Specify git tag to rollback (e.g. v1.0.2)"
+        required: false
+        type: string
 
 jobs:
   deploy:
     name: Deploy backend to EC2 via SSM
     runs-on: be-runner
 
+    env:
+      AWS_REGION: ap-southeast-2
+      ROLE_TAG: backend-ec2
+
     steps:
-      # - name: Checkout repository
-      #   uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Quan trọng để có đủ tag và lịch sử commit
 
-      # - name: Setup Node.js
-      #   uses: actions/setup-node@v4
-      #   with:
-      #     node-version: '22'
+      - name: Fetch all tags
+        run: git fetch --tags
 
-      # - name: Install dependencies (optional)
-      #   run: npm ci
+      # Determine version (auto từ tag hoặc rollback thủ công)
+      - name: Determine version to deploy
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.rollback_tag }}" ]; then
+            echo "🕹 Manual rollback requested for tag: ${{ inputs.rollback_tag }}"
+            echo "DEPLOY_VERSION=${{ inputs.rollback_tag }}" >> $GITHUB_ENV
+            echo "MODE=rollback" >> $GITHUB_ENV
+          else
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            echo "🚀 Auto deploy triggered by tag: $TAG_NAME"
+            echo "DEPLOY_VERSION=$TAG_NAME" >> $GITHUB_ENV
+            echo "MODE=auto" >> $GITHUB_ENV
+          fi
 
-      # - name: Run tests (optional)
-      #   run: npm test
+      # Validate rollback tag (nếu workflow_dispatch)
+      - name: Validate rollback tag
+        if: env.MODE == 'rollback'
+        run: |
+          TAG=${{ inputs.rollback_tag }}
+          echo "🔍 Checking if tag '$TAG' exists..."
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "✅ Tag '$TAG' exists. Proceeding with rollback."
+          else
+            echo "❌ Tag '$TAG' does not exist!"
+            echo ""
+            echo "📜 Available recent tags:"
+            git tag --sort=-creatordate | head -n 5 || echo "No tags found."
+            exit 1
+          fi
 
-      # Deploy step: Gửi lệnh đến EC2 qua SSM
+      # Checkout to the version being deployed
+      - name: Checkout to target version
+        run: |
+          git checkout $DEPLOY_VERSION
+          echo "✅ Checked out to version: $DEPLOY_VERSION"
+
+      # Optional: Build/test if needed
+      # - name: Build backend
+      #   run: npm ci && npm run build
+
+      # Deploy via AWS SSM
       - name: Deploy via AWS SSM
-        env:
-          AWS_REGION: ap-southeast-2
         run: |
           echo "🚀 Deploying backend via SSM..."
-
-          # Xác định các instance có tag Role=backend-ec2
           INSTANCE_IDS=$(aws ec2 describe-instances \
-            --filters "Name=tag:Role,Values=backend-ec2" "Name=instance-state-name,Values=running" \
+            --filters "Name=tag:Role,Values=$ROLE_TAG" "Name=instance-state-name,Values=running" \
             --query "Reservations[].Instances[].InstanceId" \
             --output text --region $AWS_REGION)
 
           echo "📦 Target instances: $INSTANCE_IDS"
 
           if [ -z "$INSTANCE_IDS" ]; then
-            echo "❌ No running instances found with tag Role=backend"
+            echo "❌ No running instances found with tag Role=$ROLE_TAG"
             exit 1
           fi
 
-          # Gửi lệnh cập nhật code và restart pm2
           COMMAND_ID=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
-            --targets "Key=tag:Role,Values=backend-ec2" \
-            --comment "CI/CD Deploy backend" \
+            --targets "Key=tag:Role,Values=$ROLE_TAG" \
+            --comment "CI/CD Deploy backend ($DEPLOY_VERSION)" \
             --parameters 'commands=[
               "sudo chown -R ubuntu:ubuntu /home/ubuntu/",
-              "sudo su - ubuntu -c \"cd /home/ubuntu/Social-App-BE && git pull && pm2 restart all\""
+              "sudo su - ubuntu -c \"cd /home/ubuntu/Social-App-BE && git fetch --all && git checkout '"$DEPLOY_VERSION"' && git pull && pm2 restart all\""
             ]' \
             --max-concurrency "50%" \
             --region $AWS_REGION \
@@ -62,8 +100,6 @@ jobs:
             --output text)
 
           echo "✅ Sent command with ID: $COMMAND_ID"
-
-          # Theo dõi trạng thái thực thi
           echo "⏳ Waiting for command to finish..."
           aws ssm list-command-invocations \
             --command-id "$COMMAND_ID" \
