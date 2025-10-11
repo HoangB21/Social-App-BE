@@ -92,7 +92,7 @@ jobs:
             --comment "CI/CD Deploy backend ($DEPLOY_VERSION)" \
             --parameters 'commands=[
               "sudo chown -R ubuntu:ubuntu /home/ubuntu/",
-              "sudo su - ubuntu -c \"cd /home/ubuntu/Social-App-BE && git fetch --all && git checkout '"$DEPLOY_VERSION"' && git pull && pm2 restart all\""
+              "sudo su - ubuntu -c \"cd /home/ubuntu/Social-App-BE && git fetch --all --tags && git checkout '"$DEPLOY_VERSION"' && pm2 restart all\""
             ]' \
             --max-concurrency "50%" \
             --region $AWS_REGION \
