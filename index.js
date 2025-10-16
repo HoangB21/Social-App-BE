@@ -69,7 +69,7 @@ app.get('/api/health', (req, res) => {
 // Modify this to test CI/CD pipeline
 app.get('/api/about', async (req, res) => {
   const ip = await getEc2PrivateIp();
-  res.status(200).json({ message: `This is a social media API server. Created by Tong Viet Hoang. Version: 1.2.3 - 17/10/2025. From EC2 with local IPv4: ${ip}` });
+  res.status(200).json({ message: `This is a social media API server. Created by Tong Viet Hoang. Version: 1.2.3. From EC2 with local IPv4: ${ip}` });
 });
 
 // Get IP address of the server
